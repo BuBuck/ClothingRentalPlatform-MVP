@@ -1,0 +1,10 @@
+{
+  "description": "A sustainable clothing rental platform connecting users with seasonal apparel through AI-powered search and personalized outfit recommendations.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

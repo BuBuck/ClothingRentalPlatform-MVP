@@ -1,6 +1,10 @@
 import { useState } from 'react'
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  onProductClick: (product?: any) => void
+}
+
+export default function HeroSection({ onProductClick }: HeroSectionProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchMode, setSearchMode] = useState<'text' | 'photo'>('text')
   const [activeFilter, setActiveFilter] = useState('전체')
@@ -103,7 +107,7 @@ export default function HeroSection() {
         {/* Right: KREAM-style product cards */}
         <div className="hidden lg:grid grid-cols-2 gap-3 h-[600px]">
           <div className="flex flex-col gap-3">
-            <div className="flex-1 rounded-2xl overflow-hidden relative bg-stone-200">
+            <div className="flex-1 rounded-2xl overflow-hidden relative bg-stone-200 cursor-pointer" onClick={() => onProductClick()}>
               <img src="https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=400&h=520&fit=crop&auto=format" className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" alt="LOW CLASSIC 울 코트" />
               <div className="absolute top-3 left-3 px-2 py-1 rounded-md text-[10px] font-mono font-semibold" style={{ background: 'var(--primary)', color: 'var(--primary-foreground)', fontFamily: 'DM Mono, monospace' }}>
                 NEW ARRIVAL
@@ -117,16 +121,16 @@ export default function HeroSection() {
                 </div>
               </div>
             </div>
-            <div className="h-44 rounded-2xl overflow-hidden relative bg-stone-200">
+            <div className="h-44 rounded-2xl overflow-hidden relative bg-stone-200 cursor-pointer" onClick={() => onProductClick()}>
               <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=220&fit=crop&auto=format" className="w-full h-full object-cover" alt="실크 드레스" />
               <div className="absolute top-2 right-2 px-2 py-1 rounded-md text-[10px] font-mono" style={{ background: 'var(--accent)', color: '#fff', fontFamily: 'DM Mono, monospace' }}>WEAR-TO-EARN</div>
             </div>
           </div>
           <div className="flex flex-col gap-3 pt-10">
-            <div className="h-44 rounded-2xl overflow-hidden bg-stone-200">
+            <div className="h-44 rounded-2xl overflow-hidden bg-stone-200 cursor-pointer" onClick={() => onProductClick()}>
               <img src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400&h=220&fit=crop&auto=format" className="w-full h-full object-cover" alt="니트 가디건" />
             </div>
-            <div className="flex-1 rounded-2xl overflow-hidden relative bg-stone-200">
+            <div className="flex-1 rounded-2xl overflow-hidden relative bg-stone-200 cursor-pointer" onClick={() => onProductClick()}>
               <img src="https://images.unsplash.com/photo-1618932260643-eee4a2f652a6?w=400&h=480&fit=crop&auto=format" className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" alt="RECTO 드레스" />
               <div className="absolute bottom-3 left-3 right-3 px-3 py-2.5 rounded-xl" style={{ background: 'rgba(245,241,232,0.93)', backdropFilter: 'blur(8px)' }}>
                 <p className="text-[10px] font-mono mb-0.5" style={{ color: 'var(--muted-foreground)', fontFamily: 'DM Mono, monospace' }}>RECTO</p>

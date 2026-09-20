@@ -4,9 +4,11 @@ import { View } from '../App'
 interface Props {
   activeView: View
   onSwitchView: (v: View) => void
+  isLoggedIn: boolean
+  onOpenLogin: () => void
 }
 
-export default function Navigation({ activeView, onSwitchView }: Props) {
+export default function Navigation({ activeView, onSwitchView, isLoggedIn, onOpenLogin }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -37,9 +39,26 @@ export default function Navigation({ activeView, onSwitchView }: Props) {
               앱
             </button>
           </div>
-          <button className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium" style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
-            로그인
-          </button>
+          
+          {isLoggedIn ? (
+            <div className="flex items-center gap-3 ml-2">
+              <div className="hidden sm:block text-right">
+                <p className="text-[11px] font-bold leading-none">김지수 님</p>
+                <p className="text-[9px] font-mono text-[#BB5938] mt-0.5" style={{ fontFamily: 'DM Mono, monospace' }}>GOLD MEMBER</p>
+              </div>
+              <button className="w-9 h-9 rounded-full bg-stone-200 overflow-hidden ring-2 ring-[#193D2A]/10 shadow-sm transition-transform active:scale-95">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&fit=crop" alt="Profile" />
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={onOpenLogin}
+              className="hidden sm:flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all active:scale-95" 
+              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+              로그인
+            </button>
+          )}
+
           <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2" style={{ color: 'var(--foreground)' }}>
             <div className="w-5 h-0.5 mb-1" style={{ background: 'currentColor' }} />
             <div className="w-5 h-0.5 mb-1" style={{ background: 'currentColor' }} />
@@ -53,9 +72,17 @@ export default function Navigation({ activeView, onSwitchView }: Props) {
             <a key={item} href="#" className="text-sm py-1" style={{ color: 'var(--foreground)' }}>{item}</a>
           ))}
           <div className="flex gap-2 pt-2">
-            <button onClick={() => onSwitchView('web')} className="flex-1 py-2 rounded-lg text-sm text-center" style={{ background: activeView === 'web' ? 'var(--primary)' : 'var(--muted)', color: activeView === 'web' ? 'var(--primary-foreground)' : 'var(--foreground)', fontFamily: 'Outfit, sans-serif' }}>웹 뷰</button>
-            <button onClick={() => onSwitchView('app')} className="flex-1 py-2 rounded-lg text-sm text-center" style={{ background: activeView === 'app' ? 'var(--primary)' : 'var(--muted)', color: activeView === 'app' ? 'var(--primary-foreground)' : 'var(--foreground)', fontFamily: 'Outfit, sans-serif' }}>앱 뷰</button>
+            <button onClick={() => onSwitchView('web')} className="flex-1 py-2 rounded-lg text-sm text-center" style={{ background: activeView === 'web' ? 'var(--primary)' : 'var(--muted)', color: activeView === 'web' ? 'var(--primary-foreground)' : 'var(--foreground)' }}>웹 뷰</button>
+            <button onClick={() => onSwitchView('app')} className="flex-1 py-2 rounded-lg text-sm text-center" style={{ background: activeView === 'app' ? 'var(--primary)' : 'var(--muted)', color: activeView === 'app' ? 'var(--primary-foreground)' : 'var(--foreground)' }}>앱 뷰</button>
           </div>
+          {!isLoggedIn && (
+            <button 
+              onClick={onOpenLogin}
+              className="w-full py-3 rounded-xl text-sm font-bold mt-2" 
+              style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+              로그인
+            </button>
+          )}
         </div>
       )}
     </nav>

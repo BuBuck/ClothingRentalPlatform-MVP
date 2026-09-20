@@ -1,12 +1,12 @@
 import { useState } from 'react'
 
 const items = [
-  { id: 1, name: '캐시미어 롱 코트', brand: 'LOW CLASSIC', price: 4500, retail: 398000, days: 1, img: 'https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=400&h=500&fit=crop&auto=format', tag: '아우터', liked: false, eco: true, rating: 4.9 },
-  { id: 2, name: '실크 미디 슬립 드레스', brand: 'RECTO', price: 3800, retail: 298000, days: 1, img: 'https://images.unsplash.com/photo-1618932260643-eee4a2f652a6?w=400&h=500&fit=crop&auto=format', tag: '원피스', liked: true, eco: false, rating: 4.7 },
-  { id: 3, name: '울 오버사이즈 블레이저', brand: 'ANDERSSON BELL', price: 5200, retail: 428000, days: 1, img: 'https://images.unsplash.com/photo-1594938298603-c8148c4b1ddf?w=400&h=500&fit=crop&auto=format', tag: '세트', liked: false, eco: true, rating: 4.8 },
-  { id: 4, name: '새틴 랩 미디 스커트', brand: 'MATIN KIM', price: 2900, retail: 198000, days: 1, img: 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=400&h=500&fit=crop&auto=format', tag: '하의', liked: false, eco: true, rating: 4.5 },
-  { id: 5, name: '퀼팅 숄더 다운 패딩', brand: 'SJYP', price: 4100, retail: 358000, days: 1, img: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=500&fit=crop&auto=format', tag: '아우터', liked: true, eco: false, rating: 4.6 },
-  { id: 6, name: '시어 플로럴 블라우스', brand: 'COS', price: 2400, retail: 148000, days: 1, img: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=500&fit=crop&auto=format', tag: '상의', liked: false, eco: true, rating: 4.8 },
+  { id: 1, name: '울 싱글 롱 코트', brand: 'LOW CLASSIC', price: 4500, buyPrice: 159000, retail: 398000, days: 1, image: 'https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=800&h=1000&fit=crop&auto=format', tag: '아우터', liked: false, eco: true, rating: 4.9, sizes: ['XS', 'S', 'M'], material: 'Wool 100%', match: 98 },
+  { id: 2, name: '새틴 미디 드레스', brand: 'RECTO', price: 3800, buyPrice: 119000, retail: 298000, days: 1, image: 'https://images.unsplash.com/photo-1618932260643-eee4a2f652a6?w=800&h=1000&fit=crop&auto=format', tag: '원피스', liked: true, eco: false, rating: 4.7, sizes: ['S', 'M'], material: 'Silk 100%', match: 95 },
+  { id: 3, name: '오버사이즈 블레이저', brand: 'ANDERSSON BELL', price: 5200, buyPrice: 171000, retail: 428000, days: 1, image: 'https://images.unsplash.com/photo-1594938298603-c8148c4b1ddf?w=800&h=1000&fit=crop&auto=format', tag: '세트', liked: false, eco: true, rating: 4.8, sizes: ['S', 'M', 'L'], material: 'Poly/Wool Mix', match: 92 },
+  { id: 4, name: '새틴 랩 스커트', brand: 'MATIN KIM', price: 2900, buyPrice: 79000, retail: 198000, days: 1, image: 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=800&h=1000&fit=crop&auto=format', tag: '하의', liked: false, eco: true, rating: 4.5, sizes: ['Free'], material: 'Satin', match: 99 },
+  { id: 5, name: '퀼팅 숄더 다운 패딩', brand: 'SJYP', price: 4100, buyPrice: 149000, retail: 358000, days: 1, image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&h=1000&fit=crop&auto=format', tag: '아우터', liked: true, eco: false, rating: 4.6, sizes: ['S', 'M'], material: 'Goose Down', match: 94 },
+  { id: 6, name: '시어 플로럴 블라우스', brand: 'COS', price: 2400, buyPrice: 69000, retail: 148000, days: 1, image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&h=1000&fit=crop&auto=format', tag: '상의', liked: false, eco: true, rating: 4.8, sizes: ['XS', 'S', 'M'], material: 'Polyester 100%', match: 91 },
 ]
 
 const feedPosts = [
@@ -16,7 +16,11 @@ const feedPosts = [
   { id: 4, user: '@soyeon.rent', points: 980, likes: 312, caption: '데이트룩 고민 끝! ANDERSSON BELL 블레이저 최고', img: 'https://images.unsplash.com/photo-1594938298603-c8148c4b1ddf?w=360&h=480&fit=crop&auto=format', brand: 'ANDERSSON BELL', rental: '₩5,200/일' },
 ]
 
-export default function FeaturedItems() {
+interface FeaturedItemsProps {
+  onProductClick: (product: any) => void
+}
+
+export default function FeaturedItems({ onProductClick }: FeaturedItemsProps) {
   const [tab, setTab] = useState<'items' | 'feed'>('items')
   const [likes, setLikes] = useState<Record<number, boolean>>(
     Object.fromEntries(items.map(i => [i.id, i.liked]))
@@ -53,16 +57,16 @@ export default function FeaturedItems() {
         {tab === 'items' ? (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-5 lg:gap-6">
             {items.map(item => (
-              <div key={item.id} className="group cursor-pointer">
+              <div key={item.id} className="group cursor-pointer" onClick={() => onProductClick(item)}>
                 <div className="relative rounded-2xl overflow-hidden aspect-[3/4] mb-3 bg-stone-100">
-                  <img src={item.img} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt={item.name} />
+                  <img src={item.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt={item.name} />
                   {item.eco && (
                     <div className="absolute top-3 left-3 px-2 py-1 rounded-lg" style={{ background: 'rgba(25,61,42,0.9)' }}>
                       <span className="text-[10px] font-mono text-white" style={{ fontFamily: 'DM Mono, monospace' }}>ESG</span>
                     </div>
                   )}
                   <button
-                    onClick={() => setLikes(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                    onClick={(e) => { e.stopPropagation(); setLikes(prev => ({ ...prev, [item.id]: !prev[item.id] })) }}
                     className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-transform hover:scale-110"
                     style={{ background: 'rgba(245,241,232,0.92)' }}>
                     <span className="text-sm">{likes[item.id] ? '♥' : '♡'}</span>
@@ -94,6 +98,7 @@ export default function FeaturedItems() {
               </div>
             ))}
           </div>
+
         ) : (
           <div>
             <div className="mb-6 p-4 rounded-xl flex items-center gap-3" style={{ background: 'rgba(25,61,42,0.06)', border: '1px solid var(--border)' }}>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MOCK_PRODUCTS } from '../data/mockData';
-import { useApp } from '../context/AppContext'; // ✦ 전역 Context 임포트
+import { useApp } from '../context/AppContext';
 
 interface ProductDetailPageProps {
   isLoggedIn: boolean;
@@ -29,6 +29,8 @@ export default function ProductDetailPage({ isLoggedIn, onOpenLogin }: ProductDe
       state: { product, size: selectedSize, days: rentalDays }
     });
   };
+
+  const totalPrice = product.price * rentalDays;
 
   return (
     <div className="min-h-screen bg-[#F4F4F4] py-10 text-stone-900">
@@ -95,13 +97,20 @@ export default function ProductDetailPage({ isLoggedIn, onOpenLogin }: ProductDe
               </div>
             </div>
 
-            {/* 하단 버튼 */}
+            {/* ✦ 하단 대여하기 버튼 (텍스트 레이아웃 분리 및 가독성 개선) */}
             <button 
               onClick={handleRentClick}
               disabled={currentlyRenting}
-              className={`w-full py-4 rounded-2xl text-sm font-bold shadow-lg transition-all ${currentlyRenting ? 'bg-[#BB5938] text-white cursor-not-allowed opacity-90' : 'bg-[#193D2A] text-white hover:bg-[#122b1e]'}`}
+              className={`w-full py-4 px-6 rounded-2xl flex items-center justify-between shadow-lg transition-all ${currentlyRenting ? 'bg-[#BB5938] text-white cursor-not-allowed opacity-90 justify-center' : 'bg-[#193D2A] text-white hover:bg-[#122b1e]'}`}
             >
-              {currentlyRenting ? '반납 대기 중인 대여 상품 (반납 D-4)' : `₩{(product.price * rentalDays).toLocaleString()} · 대여하기`}
+              {currentlyRenting ? (
+                <span className="text-xs md:text-sm font-bold">반납 대기 중인 대여 상품 (반납 D-4)</span>
+              ) : (
+                <>
+                  <span className="text-xs font-medium text-emerald-200 font-mono">{rentalDays}일 총 대여료</span>
+                  <span className="text-sm md:text-base font-bold">₩{totalPrice.toLocaleString()} 대여하기 →</span>
+                </>
+              )}
             </button>
           </div>
         </div>

@@ -127,7 +127,7 @@ export default function FloatingChatbot() {
             
             {/* 빠른 질문 칩 */}
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2.5">
-              {['하객룩 코트 추천', '블랙 미니 드레스', '출근룩 블레이저'].map(chip => (
+              {['하객룩 코트 추천해줘', '미니멀한 블랙 원피스', 'LOW CLASSIC 재고', '출근룩 블레이저'].map(chip => (
                 <button 
                   key={chip}
                   onClick={() => handleSendMessage(chip)}

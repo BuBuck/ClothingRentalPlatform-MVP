@@ -1,3 +1,5 @@
+// 
+
 import { useState } from 'react';
 import { Product } from '../types';
 import { MOCK_PRODUCTS, MOCK_BRANDS } from '../data/mockData';
@@ -10,16 +12,17 @@ import FloatingChatbot from '../components/FloatingChatbot';
 interface WebHomePageProps {
   isLoggedIn: boolean;
   onOpenLogin: () => void;
+  onLogout: () => void;
   onProductClick: (product: Product) => void;
 }
 
-export default function WebHomePage({ isLoggedIn, onOpenLogin, onProductClick }: WebHomePageProps) {
+export default function WebHomePage({ isLoggedIn, onOpenLogin, onLogout, onProductClick }: WebHomePageProps) {
+
   const [activeTab, setActiveTab] = useState<'all' | 'coat' | 'dress' | 'jacket' | 'esg'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const navigate = useNavigate();
 
-  // KREAM 스타일의 상단 배너 슬라이드 더미
   const bannerSlides = [
     {
       title: '태그도 안 뗀 한정판 브랜드 새 옷',
@@ -37,7 +40,6 @@ export default function WebHomePage({ isLoggedIn, onOpenLogin, onProductClick }:
 
   const [currentBanner, setCurrentBanner] = useState(0);
 
-  // 카테고리 퀵 메뉴 (KREAM 스타일 아이콘 바로가기)
   const quickCategories = [
     { label: '전체', icon: '🔥', tab: 'all' },
     { label: '아우터/코트', icon: '🧥', tab: 'coat' },
@@ -46,14 +48,20 @@ export default function WebHomePage({ isLoggedIn, onOpenLogin, onProductClick }:
     { label: 'ESG 파트너', icon: '🌱', tab: 'esg' },
   ];
 
-  // 상품 필터링
   const filteredProducts = MOCK_PRODUCTS.filter(p => {
     if (activeTab === 'coat') return p.name.includes('코트') || p.tag.includes('아우터');
     if (activeTab === 'dress') return p.name.includes('드레스') || p.tag.includes('원피스');
     if (activeTab === 'jacket') return p.name.includes('자켓') || p.name.includes('블레이저');
     if (activeTab === 'esg') return p.esg === true;
     return true;
-  }).filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.brand.toLowerCase().includes(searchQuery.toLowerCase()));
+  });
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
     <div className="bg-[#F5F2EB] min-h-screen text-[#171b16] pb-24">
@@ -63,9 +71,34 @@ export default function WebHomePage({ isLoggedIn, onOpenLogin, onProductClick }:
         onSwitchView={(view) => view === 'app' && navigate('/app')}
         isLoggedIn={isLoggedIn}
         onOpenLogin={onOpenLogin}
+        onLogout={onLogout}
       />
+
+      <section className="max-w-6xl mx-auto px-6 pt-8">
+        <form onSubmit={handleSearchSubmit} className="bg-white p-3 rounded-2xl border border-[#D5D0C4] shadow-sm flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 flex-1 pl-3">
+            <span className="text-base text-stone-400">⌕</span>
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="원하는 브랜드, 상품명을 검색해보세요 (예: 코트, RECTO, LOW CLASSIC)"
+              className="w-full text-xs md:text-sm outline-none bg-transparent py-2"
+            />
+          </div>
+
+          <button 
+            type="button" 
+            onClick={() => navigate('/photo-search')} 
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#193D2A]/5 hover:bg-[#193D2A]/10 border border-[#193D2A]/15 text-[#193D2A] transition-all shrink-0"
+            title="AI 사진으로 검색"
+          >
+            <span className="text-sm">📷</span>
+            <span className="text-xs font-bold hidden sm:inline">사진으로 찾기</span>
+          </button>
+        </form>
+      </section>
       
-      {/* 1. KREAM 스타일 대형 메인 배너 캐러셀 */}
       <section className="max-w-6xl mx-auto px-6 pt-6">
         <div className="relative rounded-3xl overflow-hidden aspect-[21/9] bg-stone-900 shadow-xl group">
           <img 
@@ -85,7 +118,6 @@ export default function WebHomePage({ isLoggedIn, onOpenLogin, onProductClick }:
             </p>
           </div>
 
-          {/* 배너 넘기기 버튼 */}
           <div className="absolute bottom-6 right-6 flex gap-2">
             {bannerSlides.map((_, idx) => (
               <button 
@@ -98,7 +130,6 @@ export default function WebHomePage({ isLoggedIn, onOpenLogin, onProductClick }:
         </div>
       </section>
 
-      {/* 2. KREAM 스타일 퀵 카테고리 아이콘 메뉴 */}
       <section className="max-w-6xl mx-auto px-6 mt-10">
         <div className="grid grid-cols-5 gap-3 md:gap-6">
           {quickCategories.map(cat => (
@@ -118,7 +149,6 @@ export default function WebHomePage({ isLoggedIn, onOpenLogin, onProductClick }:
         </div>
       </section>
 
-      {/* 3. 브랜드 바로보기 (KREAM 브랜드 스크롤 띠) */}
       <section className="max-w-6xl mx-auto px-6 mt-14">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-display font-bold">인기 브랜드 파트너</h2>
@@ -136,28 +166,14 @@ export default function WebHomePage({ isLoggedIn, onOpenLogin, onProductClick }:
         </div>
       </section>
 
-      {/* 4. 메인 상품 그리드 (KREAM 스타일 2열/4열 카드 레이아웃) */}
       <section className="max-w-6xl mx-auto px-6 mt-16">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
           <div>
             <p className="text-xs font-mono mb-1 tracking-widest uppercase text-[#BB5938]">JUST DROPPED</p>
             <h2 className="text-2xl md:text-3xl font-display font-bold">지금 주목해야 할 대여 상품</h2>
           </div>
-          
-          {/* 실시간 검색 인풋 */}
-          <div className="relative w-full md:w-72">
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="브랜드, 상품명 검색..."
-              className="w-full py-2.5 pl-4 pr-10 rounded-xl bg-white border border-[#D5D0C4] text-xs outline-none shadow-sm"
-            />
-            <span className="absolute right-3 top-2.5 text-stone-400">⌕</span>
-          </div>
         </div>
 
-        {/* 상품 카드 리스트 */}
         {filteredProducts.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-8">
             {filteredProducts.map(item => (
@@ -171,7 +187,6 @@ export default function WebHomePage({ isLoggedIn, onOpenLogin, onProductClick }:
         )}
       </section>
 
-      {/* ✦ 우측 하단 고정 플로팅 챗봇 위젯 삽입 완료 */}
       <FloatingChatbot />
 
     </div>

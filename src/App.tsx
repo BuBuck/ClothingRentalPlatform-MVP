@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Routes, Route } from 'react-router-dom'; // ✦ useNavigate 제거 (App 내부에서 쓰지 않음)
+import { Routes, Route, useNavigate } from 'react-router-dom';
 
 import { Product, RentalStep } from './types';
 import WebHomePage from './pages/WebHomePage';
+import WebSearchResultsPage from './pages/WebSearchResultsPage';
+import WebClosetPage from './pages/WebClosetPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CheckoutPage from './pages/CheckoutPage';
 import AiPhotoSearch from './pages/AiPhotoSearch';
@@ -19,9 +21,13 @@ import LoginModal from './components/LoginModal';
 import RentalModal from './components/RentalModal';
 
 export default function App() {
-  // ✦ 최상위 App에서 useNavigate()를 쓰면 라우터 컨텍스트 에러가 나므로 여기서 선언하지 않습니다.
+  const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+  };
 
   // 웹 대여 프로세스 공유 상태
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -35,25 +41,70 @@ export default function App() {
         {/* 웹 랜딩 페이지 */}
         <Route 
           path="/" 
-          element={<WebHomePage isLoggedIn={isLoggedIn} onOpenLogin={() => setShowLoginModal(true)} />} 
+          element={
+            <WebHomePage 
+              isLoggedIn={isLoggedIn}
+              onOpenLogin={() => setShowLoginModal(true)} 
+              onLogout={handleLogout}
+              onProductClick={(product) => navigate(`/product/${product.id}`)}
+            />
+          } 
         />
         
         {/* 웹 상품 상세 페이지 */}
         <Route 
           path="/product/:id" 
-          element={<ProductDetailPage isLoggedIn={isLoggedIn} onOpenLogin={() => setShowLoginModal(true)} />} 
+          element={
+            <ProductDetailPage
+              isLoggedIn={isLoggedIn}
+              onLogout={handleLogout}
+              onOpenLogin={() => setShowLoginModal(true)}
+            />
+          } 
         />
 
         {/* 웹 결제/배송 페이지 */}
         <Route 
           path="/checkout" 
-          element={<CheckoutPage />} 
+          element={ <CheckoutPage /> }
+        />
+
+        {/* 웹 전용 옷장 페이지 경로 */}
+        <Route 
+          path="/closet" 
+          element={
+            <WebClosetPage 
+              isLoggedIn={isLoggedIn} 
+              onOpenLogin={() => setShowLoginModal(true)}
+              onLogout={handleLogout}
+              onProductClick={(product) => navigate(`/product/${product.id}`)}
+            />
+          } 
+        />
+
+        {/* 웹 전용 검색 페이지 경로 */}
+        <Route 
+          path="/search" 
+          element={
+            <WebSearchResultsPage 
+              isLoggedIn={isLoggedIn} 
+              onOpenLogin={() => setShowLoginModal(true)}
+              onLogout={handleLogout}
+              onProductClick={(product) => navigate(`/product/${product.id}`)}
+            />
+          } 
         />
 
         {/* 웹 전용 AI 사진 검색 페이지 경로 */}
         <Route 
           path="/photo-search" 
-          element={<AiPhotoSearch />} 
+          element={
+            <AiPhotoSearch 
+              isLoggedIn={isLoggedIn}
+              onOpenLogin={() => setShowLoginModal(true)} 
+              onLogout={handleLogout}
+            />
+          } 
         />
 
         {/* 모바일 앱 전용 라우트 */}
@@ -63,7 +114,7 @@ export default function App() {
             element={
               <AppHomePage 
                 isLoggedIn={isLoggedIn} 
-                onOpenLogin={() => setShowLoginModal(true)} 
+                onLogin={() => setIsLoggedIn(true)} 
               />
             } 
           />
@@ -74,9 +125,7 @@ export default function App() {
               <AppClosetPage 
                 isLoggedIn={isLoggedIn} 
                 onOpenLogin={() => setShowLoginModal(true)} 
-                onProductClick={(product) => {
-                  // 각 페이지 내부에서 useNavigate를 안전하게 쓰도록 처리
-                }} 
+                onProductClick={(product) => {}} 
               />
             } 
           />
@@ -92,7 +141,16 @@ export default function App() {
           />
           <Route path="product/:id" element={<AppProductDetailPage />} />
           <Route path="checkout" element={<AppCheckoutPage />} />
-          <Route path="photo-search" element={<AiPhotoSearch />} />
+          <Route 
+            path="photo-search" 
+            element={
+              <AiPhotoSearch 
+                isLoggedIn={isLoggedIn} 
+                onOpenLogin={() => setShowLoginModal(true)}
+                onLogout={handleLogout}
+              />
+            } 
+          />
         </Route>
       </Routes>
 

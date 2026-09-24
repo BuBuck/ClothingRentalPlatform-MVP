@@ -8,7 +8,7 @@ interface AppHomePageProps {
   onOpenLogin: () => void;
 }
 
-export default function AppHomePage({ isLoggedIn, onOpenLogin }: AppHomePageProps) {
+export default function AppHomePage({ isLoggedIn, onLogin }: AppHomePageProps) {
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState('');
   const [searchSubmitted, setSearchSubmitted] = useState(false);
@@ -43,7 +43,7 @@ export default function AppHomePage({ isLoggedIn, onOpenLogin }: AppHomePageProp
               <p className="text-[11px] text-stone-500 mt-0.5">AI 사이즈 매칭 및 W-E 혜택 제공</p>
             </div>
             <button 
-              onClick={onOpenLogin}
+              onClick={onLogin}
               className="px-4 py-2 bg-[#193D2A] text-white rounded-xl text-xs font-bold shadow-sm"
             >
               로그인

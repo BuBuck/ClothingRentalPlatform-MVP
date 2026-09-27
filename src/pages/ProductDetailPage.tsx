@@ -2,13 +2,16 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MOCK_PRODUCTS } from '../data/mockData';
 import { useApp } from '../context/AppContext';
+import Navigation from '../components/Navigation'; // ✦ 네비게이션 임포트
+import FloatingChatbot from '../components/FloatingChatbot'; // ✦ 플로팅 챗봇 임포트
 
 interface ProductDetailPageProps {
   isLoggedIn: boolean;
   onOpenLogin: () => void;
+  onLogout: () => void; // ✦ 로그아웃 핸들러 추가
 }
 
-export default function ProductDetailPage({ isLoggedIn, onOpenLogin }: ProductDetailPageProps) {
+export default function ProductDetailPage({ isLoggedIn, onOpenLogin, onLogout }: ProductDetailPageProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isRenting } = useApp();
@@ -33,11 +36,23 @@ export default function ProductDetailPage({ isLoggedIn, onOpenLogin }: ProductDe
   const totalPrice = product.price * rentalDays;
 
   return (
-    <div className="min-h-screen bg-[#F4F4F4] py-10 text-stone-900">
-      <div className="max-w-4xl mx-auto px-4">
-        <button onClick={() => navigate(-1)} className="text-sm font-bold mb-6 hover:underline">← 돌아가기</button>
+    <div className="bg-[#F5F2EB] min-h-screen text-[#171b16] pb-24">
+      
+      {/* ✦ 상단 네비게이션바 추가 (다른 웹 페이지들과 동일) */}
+      <Navigation 
+        activeView="web"
+        onSwitchView={(view) => view === 'app' && navigate('/app')}
+        isLoggedIn={isLoggedIn}
+        onOpenLogin={onOpenLogin}
+        onLogout={onLogout}
+      />
+
+      <div className="max-w-4xl mx-auto px-6 pt-10">
+        <button onClick={() => navigate(-1)} className="text-xs font-bold mb-6 text-stone-600 hover:text-[#193D2A] transition-colors">
+          ← 돌아가기
+        </button>
         
-        <div className="bg-white rounded-3xl p-8 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-3xl p-8 border border-[#D5D0C4] shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* 상품 이미지 */}
           <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-stone-100 relative">
             <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
@@ -72,7 +87,7 @@ export default function ProductDetailPage({ isLoggedIn, onOpenLogin }: ProductDe
                     key={size}
                     disabled={currentlyRenting}
                     onClick={() => setSelectedSize(size)}
-                    className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-all ${selectedSize === size ? 'border-[#193D2A] bg-[#193D2A] text-white' : 'border-stone-200 text-stone-700'} ${currentlyRenting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-all ${selectedSize === size ? 'border-[#193D2A] bg-[#193D2A] text-white shadow-xs' : 'border-[#D5D0C4] text-stone-700 bg-white hover:bg-stone-50'} ${currentlyRenting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {size}
                   </button>
@@ -89,7 +104,7 @@ export default function ProductDetailPage({ isLoggedIn, onOpenLogin }: ProductDe
                     key={days}
                     disabled={currentlyRenting}
                     onClick={() => setRentalDays(days)}
-                    className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-all ${rentalDays === days ? 'border-[#193D2A] bg-[#193D2A] text-white' : 'border-stone-200 text-stone-700'} ${currentlyRenting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-all ${rentalDays === days ? 'border-[#193D2A] bg-[#193D2A] text-white shadow-xs' : 'border-[#D5D0C4] text-stone-700 bg-white hover:bg-stone-50'} ${currentlyRenting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {days}일 대여
                   </button>
@@ -97,7 +112,7 @@ export default function ProductDetailPage({ isLoggedIn, onOpenLogin }: ProductDe
               </div>
             </div>
 
-            {/* ✦ 하단 대여하기 버튼 (텍스트 레이아웃 분리 및 가독성 개선) */}
+            {/* 하단 대여하기 버튼 */}
             <button 
               onClick={handleRentClick}
               disabled={currentlyRenting}
@@ -115,6 +130,9 @@ export default function ProductDetailPage({ isLoggedIn, onOpenLogin }: ProductDe
           </div>
         </div>
       </div>
+
+      <FloatingChatbot />
+
     </div>
   );
 }

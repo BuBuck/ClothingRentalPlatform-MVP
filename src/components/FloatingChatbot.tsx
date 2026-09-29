@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
 import { MOCK_PRODUCTS } from '../data/mockData';
 import ProductCard from './ProductCard';
 import { Product } from '../types';
@@ -11,34 +12,21 @@ interface ChatMessage {
   reasons?: string[];
 }
 
-const CHAT_STORAGE_KEY = 'layered_chat_history';
-
 export default function FloatingChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // LocalStorage에서 대화 기록 불러오기
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    const savedMessages = localStorage.getItem(CHAT_STORAGE_KEY);
-    if (savedMessages) {
-      try {
-        const parsed = JSON.parse(savedMessages);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (error) {
-        console.error('LocalStorage 파싱 에러:', error);
-      }
+  // ✦ LocalStorage 연동 제거 및 기본 상태로 초기화
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: '1',
+      sender: 'ai',
+      text: '안녕하세요! 레이어드 수석 AI 스타일리스트 🎀 레아(Rhea)입니다. 내 옷장과 취향을 바탕으로 딱 맞는 스타일을 추천해 드릴게요. 어떤 약속이나 스타일을 고민 중이신가요?',
+      products: MOCK_PRODUCTS.slice(0, 2),
+      reasons: ['맞춤형 옷장 분석', '실시간 재고 매칭']
     }
-    return [
-      {
-        id: '1',
-        sender: 'ai',
-        text: '안녕하세요! 레이어드 수석 AI 스타일리스트 🎀 레아(Rhea)입니다. 내 옷장과 취향을 바탕으로 딱 맞는 스타일을 추천해 드릴게요. 어떤 약속이나 스타일을 고민 중이신가요?',
-        products: MOCK_PRODUCTS.slice(0, 2),
-        reasons: ['맞춤형 옷장 분석', '실시간 재고 매칭']
-      }
-    ];
-  });
+  ]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -46,22 +34,61 @@ export default function FloatingChatbot() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // 대화 내용 변경 시 LocalStorage에 JSON 형태로 자동 저장
-  useEffect(() => {
-    try {
-      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
-    } catch (e) {
-      console.error('Storage save error:', e);
-    }
-  }, [messages]);
-
   useEffect(() => {
     if (isOpen) {
       scrollToBottom();
     }
   }, [messages, isOpen]);
 
-  const handleSendMessage = (textToSend?: string) => {
+  // 실제 Gemini API 호출 함수
+  const fetchGeminiResponse = async (userQuery: string) => {
+    const apiKey = import.meta.env.VITE_AI_API_KEY;
+
+    if (!apiKey) {
+      return 'API 키가 설정되지 않았습니다. .env 파일이나 GitHub Secrets를 확인해 주세요.';
+    }
+
+    const productCatalog = MOCK_PRODUCTS.map(p => `ID: ${p.id}, 이름: ${p.name}, 브랜드: ${p.brand}, 태그: ${p.tag}, 가격: ${p.price}`).join('\n');
+
+    const systemPrompt = `
+      당신은 패션 대여 플랫폼 '레이어드(Layered)'의 수석 AI 스타일리스트 '레아(Rhea)'입니다.
+
+      고객의 상황에 맞는 코디를 제안하기 위해 다음 정보를 참고하세요:
+
+      - 고객의 질문: "${userQuery}"
+      - 고객의 옷장 보유 상품: "${userWardrobe}"
+      - 레이어드 플랫폼 보유 상품 카탈로그: "${productCatalog}"
+
+      [추천 우선순위 규칙]
+      1. 먼저 고객의 옷장에 있는 상품(${userWardrobe})을 확인하고, 고객의 상황이나 분위기에 어울린다면 최우선으로 조합에 포함해 제안하세요.
+      2. 옷장의 아이템만으로 코디가 부족하거나 어울리는 아이템이 없다면, 플랫폼 상품 카탈로그(${productCatalog})에서 적절한 상품을 골라 믹스매치 코디를 완성하세요.
+      3. 플랫폼 카탈로그에도 적합한 상품이 없다면, 트렌드에 맞는 추천 상품의 이름만 간결하게 언급하여 제안하세요.
+
+      [답변 규칙]
+      1. 친절하고 트렌디한 어조를 유지하세요.
+      2. 모바일 화면에서 가독성이 좋도록 3~4문장 이내로 핵심만 간결하게 작성하세요.
+    `;
+
+    try {
+      const response = await axios.post(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`,
+        {
+          contents: [{ parts: [{ text: systemPrompt }] }]
+        },
+        {
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+
+      const aiText = response.data.candidates[0].content.parts[0].text;
+      return aiText;
+    } catch (error) {
+      console.error('Gemini API Error:', error);
+      return '앗, 지금 패션 트렌드를 분석하는 중에 통신이 지연되고 있어요. 잠시 후 다시 말씀해 주시겠어요?';
+    }
+  };
+
+  const handleSendMessage = async (textToSend?: string) => {
     const query = textToSend || input;
     if (!query.trim() || isLoading) return;
 
@@ -75,53 +102,27 @@ export default function FloatingChatbot() {
     if (!textToSend) setInput('');
     setIsLoading(true);
 
-    setTimeout(() => {
-      const lowerQuery = query.toLowerCase();
+    const aiResponseText = await fetchGeminiResponse(query);
 
-      let selectedProduct = MOCK_PRODUCTS[0];
-      let basicClosetItem = '흰 티셔츠와 슬랙스';
-      let situationName = '말씀하신 일정';
-      let customReasons = ['보유 옷장 자동 매칭', '높은 코디 활용도', '트렌디한 핏 분석'];
+    const matchedProduct = MOCK_PRODUCTS.find(p => 
+      query.toLowerCase().includes(p.name.toLowerCase()) || 
+      query.toLowerCase().includes(p.tag.toLowerCase()) ||
+      query.toLowerCase().includes(p.brand.toLowerCase())
+    ) || MOCK_PRODUCTS[0];
 
-      if (lowerQuery.includes('소개팅') || lowerQuery.includes('데이트') || lowerQuery.includes('만남')) {
-        basicClosetItem = '심플한 무지 니트와 슬랙스';
-        situationName = '설레는 만남 자리';
-        selectedProduct = MOCK_PRODUCTS.find(p => p.tag.includes('자켓') || p.tag.includes('블레이저') || p.tag.includes('코트')) || MOCK_PRODUCTS[0];
-        customReasons = ['첫인상을 높여주는 단정함', '과하지 않은 세미캐주얼', '정핏 매치'];
-      } else if (lowerQuery.includes('여행') || lowerQuery.includes('바다') || lowerQuery.includes('휴가') || lowerQuery.includes('놀러')) {
-        basicClosetItem = '편안한 흰 나시와 데님 팬츠';
-        situationName = '즐거운 여행과 야외 활동';
-        selectedProduct = MOCK_PRODUCTS.find(p => p.tag.includes('셔츠') || p.tag.includes('가디건') || p.tag.includes('원피스')) || MOCK_PRODUCTS[1];
-        customReasons = ['사진이 잘 나오는 포인트 컬러', '가볍게 걸치기 좋은 아우터', '활동성 강조'];
-      } else if (lowerQuery.includes('결혼식') || lowerQuery.includes('하객') || lowerQuery.includes('정장') || lowerQuery.includes('격식')) {
-        basicClosetItem = '미니멀한 블랙 원피스나 깔끔한 슬랙스';
-        situationName = '격식 있는 예식 자리';
-        selectedProduct = MOCK_PRODUCTS.find(p => p.tag.includes('코트') || p.tag.includes('자켓') || p.tag.includes('블레이저')) || MOCK_PRODUCTS[0];
-        customReasons = ['단정하고 고급스러운 무드', '격식에 맞는 TPO', '세련된 실루엣'];
-      } else {
-        basicClosetItem = '고객님의 옷장 속 베이직 아이템';
-        situationName = '고민 중이신 스타일';
-        selectedProduct = MOCK_PRODUCTS[0];
-        customReasons = ['맞춤형 믹스매치', '높은 활용도', '트렌디한 감성'];
-      }
+    const subProduct = MOCK_PRODUCTS.find(p => p.id !== matchedProduct.id) || MOCK_PRODUCTS[1];
+    const uniqueProducts = Array.from(new Set([matchedProduct, subProduct]));
 
-      const text = `좋아요! 말씀해주신 내용을 바탕으로 살펴보니, 저장된 옷장 속 '${basicClosetItem}'에 저희 사이트의 '${selectedProduct.name}'을(를) 더하는 조합이 가장 멋스러워요.\n\n${situationName}에 딱 어울리면서도 포인트를 살릴 수 있는 베스트 코디랍니다! ✨`;
+    const aiMsg: ChatMessage = {
+      id: (Date.now() + 1).toString(),
+      sender: 'ai',
+      text: aiResponseText,
+      reasons: ['실시간 AI 맞춤 분석', '보유 옷장 연동 믹스매치', '트렌디한 핏 제안'],
+      products: uniqueProducts
+    };
 
-      // ✦ 중복 없는 고유 상품 2개 추출 (Set 활용)
-      const subProduct = MOCK_PRODUCTS.find(p => p.id !== selectedProduct.id) || MOCK_PRODUCTS[1];
-      const uniqueProducts = Array.from(new Set([selectedProduct, subProduct]));
-
-      const aiMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        sender: 'ai',
-        text: text,
-        reasons: customReasons,
-        products: uniqueProducts
-      };
-
-      setMessages(prev => [...prev, aiMsg]);
-      setIsLoading(false);
-    }, 600);
+    setMessages(prev => [...prev, aiMsg]);
+    setIsLoading(false);
   };
 
   return (
@@ -189,7 +190,6 @@ export default function FloatingChatbot() {
 
                 {msg.products && msg.products.length > 0 && (
                   <div className="mt-2.5 w-full grid grid-cols-2 gap-2.5">
-                    {/* ✦ 수정됨: key에 index를 조합하여 절대 중복되지 않도록 고유성 확보 */}
                     {msg.products.map((item, pIdx) => (
                       <div key={`product-${msg.id}-${item.id}-${pIdx}`} className="bg-white p-2 rounded-xl border border-[#D5D0C4] shadow-xs">
                         <ProductCard item={item} />
@@ -237,7 +237,7 @@ export default function FloatingChatbot() {
                 value={input}
                 disabled={isLoading}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="어떤 스타일이나 약속이 있으신가요?"
+                placeholder="AI 스타일리스트에게 무엇이든 물어보세요!"
                 className="flex-1 text-xs outline-none bg-transparent"
               />
               <button 

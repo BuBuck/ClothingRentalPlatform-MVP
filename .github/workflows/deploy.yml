@@ -36,7 +36,6 @@ jobs:
         run: npm run build
         env:
           VITE_AI_API_KEY: ${{ secrets.VITE_AI_API_KEY }}
-
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}

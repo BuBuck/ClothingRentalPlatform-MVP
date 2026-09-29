@@ -49,6 +49,7 @@ export default function FloatingChatbot() {
     }
 
     const productCatalog = MOCK_PRODUCTS.map(p => `ID: ${p.id}, 이름: ${p.name}, 브랜드: ${p.brand}, 태그: ${p.tag}, 가격: ${p.price}`).join('\n');
+    const userWardrobe = "MVP라 무시해도됨..";
 
     const systemPrompt = `
       당신은 패션 대여 플랫폼 '레이어드(Layered)'의 수석 AI 스타일리스트 '레아(Rhea)'입니다.

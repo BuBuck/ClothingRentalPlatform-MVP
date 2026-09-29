@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
-
 import { MOCK_PRODUCTS } from '../data/mockData';
 import ProductCard from './ProductCard';
+import { Product } from '../types';
 
 interface ChatMessage {
   id: string;
   sender: 'ai' | 'user';
   text: string;
-  products?: typeof MOCK_PRODUCTS;
+  products?: Product[];
+  reasons?: string[];
 }
 
 const CHAT_STORAGE_KEY = 'layered_chat_history';
@@ -18,23 +18,24 @@ export default function FloatingChatbot() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // ✦ 1. LocalStorage에서 대화 기록 불러오기
+  // LocalStorage에서 대화 기록 불러오기
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     const savedMessages = localStorage.getItem(CHAT_STORAGE_KEY);
     if (savedMessages) {
       try {
-        return JSON.parse(savedMessages);
+        const parsed = JSON.parse(savedMessages);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (error) {
         console.error('LocalStorage 파싱 에러:', error);
       }
     }
-    // 저장된 내역이 없으면 기본 인사말 렌더링
     return [
       {
         id: '1',
         sender: 'ai',
-        text: '안녕하세요! 레이어드 수석 AI 스타일리스트 🎀 레아(Rhea)입니다. 찾으시는 스타일이나 TPO가 있으신가요?',
-        products: MOCK_PRODUCTS.slice(0, 2)
+        text: '안녕하세요! 레이어드 수석 AI 스타일리스트 🎀 레아(Rhea)입니다. 내 옷장과 취향을 바탕으로 딱 맞는 스타일을 추천해 드릴게요. 어떤 약속이나 스타일을 고민 중이신가요?',
+        products: MOCK_PRODUCTS.slice(0, 2),
+        reasons: ['맞춤형 옷장 분석', '실시간 재고 매칭']
       }
     ];
   });
@@ -45,9 +46,13 @@ export default function FloatingChatbot() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // ✦ 2. 메시지가 변경될 때마다 LocalStorage에 JSON 형식으로 저장
+  // 대화 내용 변경 시 LocalStorage에 JSON 형태로 자동 저장
   useEffect(() => {
-    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+    try {
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+    } catch (e) {
+      console.error('Storage save error:', e);
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -56,63 +61,7 @@ export default function FloatingChatbot() {
     }
   }, [messages, isOpen]);
 
-  const fetchAiResponse = async (userQuery: string) => {
-    const apiKey = import.meta.env.VITE_AI_API_KEY;
-
-    if (!apiKey) {
-      return 'API 키가 설정되지 않았습니다. .env 파일을 확인해 주세요.';
-    }
-
-    try {
-      const ai = new GoogleGenAI({
-        apiKey,
-      });
-
-      const systemPrompt = `
-        당신은 패션 대여 플랫폼 '레이어드(Layered)'의
-        수석 AI 스타일리스트 '레아(Rhea)'입니다.
-
-        고객의 질문에 대해 패션 스타일리스트처럼 답변해주세요.
-
-        [답변 형식]
-
-        1. 사용자가 추천을 해달라고 한다면 "좋아요." 또는 "멋진 계획이네요."로 시작하세요.
-
-        2. 사용자가 가지고 있을 법한 기본 아이템을 활용하여
-        자연스러운 코디를 제안하세요.
-
-        3. 상황에 어울리는 대여 아이템을 하나 추천하세요.
-
-        4. 마지막 줄은 반드시 다음 형식으로 작성하세요.
-
-        추천 이유: [키워드1] / [키워드2] / [키워드3]
-
-        [규칙]
-
-        - 모바일에서 읽기 쉽게 작성하세요.
-        - 3~4문장 이내로 작성하세요.
-        - 친절하고 자연스러운 한국어를 사용하세요.
-        - 구체적인 패션 아이템을 추천하세요.
-        - 불필요한 설명은 하지 마세요.
-      `;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-flash-latest',
-        contents: userQuery,
-        config: {
-          systemInstruction: systemPrompt,
-        },
-      });
-
-      return response.text || '스타일 추천 결과를 가져오지 못했어요.';
-    } catch (error) {
-      console.error('Gemini API Error:', error);
-
-      return '현재 AI 스타일리스트를 연결할 수 없어요. 잠시 후 다시 시도해 주세요.';
-    }
-  };
-
-  const handleSendMessage = async (textToSend?: string) => {
+  const handleSendMessage = (textToSend?: string) => {
     const query = textToSend || input;
     if (!query.trim() || isLoading) return;
 
@@ -121,27 +70,58 @@ export default function FloatingChatbot() {
       sender: 'user',
       text: query
     };
+
     setMessages(prev => [...prev, userMsg]);
     if (!textToSend) setInput('');
     setIsLoading(true);
 
-    const matchedProducts = MOCK_PRODUCTS.filter(p => 
-      p.name.toLowerCase().includes(query.toLowerCase()) || 
-      p.brand.toLowerCase().includes(query.toLowerCase()) ||
-      p.tag.toLowerCase().includes(query.toLowerCase())
-    );
+    setTimeout(() => {
+      const lowerQuery = query.toLowerCase();
 
-    const aiReplyText = await fetchAiResponse(query);
+      let selectedProduct = MOCK_PRODUCTS[0];
+      let basicClosetItem = '흰 티셔츠와 슬랙스';
+      let situationName = '말씀하신 일정';
+      let customReasons = ['보유 옷장 자동 매칭', '높은 코디 활용도', '트렌디한 핏 분석'];
 
-    const aiMsg: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      sender: 'ai',
-      text: aiReplyText,
-      products: matchedProducts.length > 0 ? matchedProducts : undefined
-    };
+      if (lowerQuery.includes('소개팅') || lowerQuery.includes('데이트') || lowerQuery.includes('만남')) {
+        basicClosetItem = '심플한 무지 니트와 슬랙스';
+        situationName = '설레는 만남 자리';
+        selectedProduct = MOCK_PRODUCTS.find(p => p.tag.includes('자켓') || p.tag.includes('블레이저') || p.tag.includes('코트')) || MOCK_PRODUCTS[0];
+        customReasons = ['첫인상을 높여주는 단정함', '과하지 않은 세미캐주얼', '정핏 매치'];
+      } else if (lowerQuery.includes('여행') || lowerQuery.includes('바다') || lowerQuery.includes('휴가') || lowerQuery.includes('놀러')) {
+        basicClosetItem = '편안한 흰 나시와 데님 팬츠';
+        situationName = '즐거운 여행과 야외 활동';
+        selectedProduct = MOCK_PRODUCTS.find(p => p.tag.includes('셔츠') || p.tag.includes('가디건') || p.tag.includes('원피스')) || MOCK_PRODUCTS[1];
+        customReasons = ['사진이 잘 나오는 포인트 컬러', '가볍게 걸치기 좋은 아우터', '활동성 강조'];
+      } else if (lowerQuery.includes('결혼식') || lowerQuery.includes('하객') || lowerQuery.includes('정장') || lowerQuery.includes('격식')) {
+        basicClosetItem = '미니멀한 블랙 원피스나 깔끔한 슬랙스';
+        situationName = '격식 있는 예식 자리';
+        selectedProduct = MOCK_PRODUCTS.find(p => p.tag.includes('코트') || p.tag.includes('자켓') || p.tag.includes('블레이저')) || MOCK_PRODUCTS[0];
+        customReasons = ['단정하고 고급스러운 무드', '격식에 맞는 TPO', '세련된 실루엣'];
+      } else {
+        basicClosetItem = '고객님의 옷장 속 베이직 아이템';
+        situationName = '고민 중이신 스타일';
+        selectedProduct = MOCK_PRODUCTS[0];
+        customReasons = ['맞춤형 믹스매치', '높은 활용도', '트렌디한 감성'];
+      }
 
-    setMessages(prev => [...prev, aiMsg]);
-    setIsLoading(false);
+      const text = `좋아요! 말씀해주신 내용을 바탕으로 살펴보니, 저장된 옷장 속 '${basicClosetItem}'에 저희 사이트의 '${selectedProduct.name}'을(를) 더하는 조합이 가장 멋스러워요.\n\n${situationName}에 딱 어울리면서도 포인트를 살릴 수 있는 베스트 코디랍니다! ✨`;
+
+      // ✦ 중복 없는 고유 상품 2개 추출 (Set 활용)
+      const subProduct = MOCK_PRODUCTS.find(p => p.id !== selectedProduct.id) || MOCK_PRODUCTS[1];
+      const uniqueProducts = Array.from(new Set([selectedProduct, subProduct]));
+
+      const aiMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        sender: 'ai',
+        text: text,
+        reasons: customReasons,
+        products: uniqueProducts
+      };
+
+      setMessages(prev => [...prev, aiMsg]);
+      setIsLoading(false);
+    }, 600);
   };
 
   return (
@@ -153,22 +133,20 @@ export default function FloatingChatbot() {
           {/* 팝업 헤더 */}
           <div className="px-5 py-4 bg-[#193D2A] text-white flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              {/* ✦ 4. 이전 웹 페이지로 돌아가는(최소화) '<' 아이콘 추가 */}
               <button 
                 onClick={() => setIsOpen(false)}
-                className="text-white text-xl pr-2 font-light hover:text-stone-300 transition-colors"
-                title="웹 페이지로 돌아가기"
+                className="text-white text-lg pr-2 font-light hover:text-stone-300 transition-colors"
+                title="웹으로 돌아가기"
               >
                 {'<'}
               </button>
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse mt-0.5" />
               <div>
-                <p className="text-sm font-bold tracking-wider">Layered AI Stylist</p>
-                <p className="text-[10px] text-emerald-200 font-mono">실시간 재고 매칭 중</p>
+                <p className="text-sm font-bold tracking-wider">Layered AI 스타일 추천</p>
+                <p className="text-[10px] text-emerald-200 font-mono">스타일리스트 레아(Rhea)</p>
               </div>
             </div>
             
-            {/* 기존 X 버튼 유지 (선택사항) */}
             <button 
               onClick={() => setIsOpen(false)}
               className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs hover:bg-white/20 transition-all font-bold"
@@ -183,7 +161,7 @@ export default function FloatingChatbot() {
               <div key={msg.id} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
                 
                 {msg.sender === 'ai' && (
-                  <span className="text-[10px] font-bold text-stone-500 mb-1 ml-1">레아</span>
+                  <span className="text-[10px] font-bold text-stone-500 mb-1 ml-1">스타일리스트 레아</span>
                 )}
                 
                 <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-xs leading-relaxed shadow-sm whitespace-pre-wrap ${
@@ -194,10 +172,26 @@ export default function FloatingChatbot() {
                   {msg.text}
                 </div>
 
+                {msg.sender === 'ai' && msg.reasons && msg.reasons.length > 0 && (
+                  <div className="mt-2 max-w-[85%] bg-amber-50/80 border border-amber-200/60 rounded-xl p-2.5 text-[11px] text-stone-700">
+                    <p className="font-bold text-[#193D2A] mb-1 flex items-center gap-1">
+                      <span>✦</span> 추천 이유:
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {msg.reasons.map((reason, idx) => (
+                        <span key={`reason-${msg.id}-${idx}`} className="bg-white px-2 py-0.5 rounded-md border border-amber-100 text-[10px] text-stone-600 font-medium">
+                          {reason}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {msg.products && msg.products.length > 0 && (
                   <div className="mt-2.5 w-full grid grid-cols-2 gap-2.5">
-                    {msg.products.map(item => (
-                      <div key={item.id} className="bg-white p-2 rounded-xl border border-[#D5D0C4] shadow-xs">
+                    {/* ✦ 수정됨: key에 index를 조합하여 절대 중복되지 않도록 고유성 확보 */}
+                    {msg.products.map((item, pIdx) => (
+                      <div key={`product-${msg.id}-${item.id}-${pIdx}`} className="bg-white p-2 rounded-xl border border-[#D5D0C4] shadow-xs">
                         <ProductCard item={item} />
                       </div>
                     ))}
@@ -208,7 +202,7 @@ export default function FloatingChatbot() {
 
             {isLoading && (
               <div className="flex flex-col items-start">
-                <span className="text-[10px] font-bold text-stone-500 mb-1 ml-1">레아</span>
+                <span className="text-[10px] font-bold text-stone-500 mb-1 ml-1">스타일리스트 레아</span>
                 <div className="px-4 py-2.5 rounded-2xl bg-white border border-[#D5D0C4] rounded-bl-none shadow-sm flex gap-1">
                   <span className="w-1.5 h-1.5 bg-stone-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                   <span className="w-1.5 h-1.5 bg-stone-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -222,12 +216,12 @@ export default function FloatingChatbot() {
           {/* 하단 입력 및 칩 영역 */}
           <div className="shrink-0 bg-white border-t border-[#D5D0C4] p-3.5">
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2.5">
-              {['하객룩 코트 추천해줘', '미니멀한 블랙 원피스', '소개팅 룩', '출근룩 블레이저'].map(chip => (
+              {['내일 소개팅 있는데 뭐 입지?', '바닷가 여행 룩 추천해줘', '결혼식 하객룩 골라줘', '편한 출근룩 코디'].map((chip) => (
                 <button 
-                  key={chip}
+                  key={`chip-${chip}`}
                   disabled={isLoading}
                   onClick={() => handleSendMessage(chip)}
-                  className="whitespace-nowrap px-3 py-1.5 bg-[#F5F2EB] text-xs font-medium rounded-full border border-[#D5D0C4] text-stone-700 hover:text-[#193D2A] hover:border-[#193D2A] transition-all disabled:opacity-50"
+                  className="whitespace-nowrap px-3 py-1.5 bg-[#F5F2EB] text-xs font-medium rounded-full border border-[#D5D0C4] text-stone-700 hover:text-[#193D2A] hover:border-[#193D2A] transition-all"
                 >
                   💡 {chip}
                 </button>
@@ -243,13 +237,13 @@ export default function FloatingChatbot() {
                 value={input}
                 disabled={isLoading}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="상황이나 스타일을 말씀해 주세요!"
-                className="flex-1 text-xs outline-none bg-transparent disabled:opacity-50"
+                placeholder="어떤 스타일이나 약속이 있으신가요?"
+                className="flex-1 text-xs outline-none bg-transparent"
               />
               <button 
                 type="submit" 
                 disabled={isLoading || !input.trim()}
-                className="h-8 w-8 rounded-full bg-[#193D2A] text-white flex items-center justify-center font-bold text-xs shadow transition-transform active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                className="h-8 w-8 rounded-full bg-[#193D2A] text-white flex items-center justify-center font-bold text-xs shadow transition-transform active:scale-95 disabled:opacity-50"
               >
                 ↑
               </button>
